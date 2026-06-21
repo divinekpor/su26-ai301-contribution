@@ -1,177 +1,239 @@
-# Contribution 1: Semantic versioning
+# Contribution 1: Semantic Versioning
 
-**Contribution Number:** 1
-**Student:** Divine Doamekpor
-**Issue:** https://github.com/codeforpdx/tenantfirstaid/issues/175
-**Status:** Phase I In Progress
-
----
-
-## Why I Chose This Issue
-
-I chose this issue because it seems like a good first contribution that will help me understand both the frontend and backend of the project. The issue is focused on adding a single version number for the whole application, which is useful because it helps users and developers know exactly what version of the website they are using.
-
-This issue also matches my learning goals because I want to get more comfortable working in a real open-source codebase. Since this task may involve reading from the backend version, creating an endpoint, and displaying the result on the webpage, it gives me practice with full-stack development in a manageable way.
+**Contribution Number:** 1  
+**Student:** Divine Doamekpor  
+**Project:** Tenant First Aid  
+**Repository:** https://github.com/codeforpdx/tenantfirstaid  
+**Fork:** https://github.com/divinekpor/tenantfirstaid  
+**Issue:** https://github.com/codeforpdx/tenantfirstaid/issues/175  
+**Working Branch:** `fix-issue-175`  
+**Branch Link:** https://github.com/divinekpor/tenantfirstaid/tree/fix-issue-175  
+**Status:** Phase II Complete
 
 ---
 
-## Understanding the Issue
+## Phase I: Issue Selection
 
-### Problem Description
+### Why I Chose This Issue
 
-The project needs one clear version number that represents the deployed app as a whole. Right now, the backend has a version listed in `pyproject.toml`, but that version has not been updated in a while. There is also no visible way for users to see what version of the website they are using.
+I chose this issue because it is a focused first contribution that still touches both sides of the application. The issue asks for semantic versioning support so the app has one clear version number. That matters because users, contributors, and maintainers should be able to tell which version of Tenant First Aid is deployed or running locally.
+
+This issue also fits my learning goals because it requires reading a real open-source codebase, finding existing backend routes, finding where the frontend displays shared app information, and planning a small full-stack change without changing unrelated behavior.
+
+### Understanding the Issue
+
+Tenant First Aid currently has more than one version value in the codebase. The backend project version is defined in `backend/pyproject.toml`, but the frontend has a separate package version in `frontend/package.json`. The visible footer currently uses the frontend package version, so it does not represent one shared application version.
 
 ### Expected Behavior
 
-The application should have a single source of truth for the version number. The backend should provide an endpoint that returns the current app version, and the frontend should display that version somewhere on the webpage.
+The application should have one source of truth for its version. The backend version should be exposed through an API endpoint, and the frontend should display that backend-provided version in the existing footer.
 
 ### Current Behavior
 
-Currently, the version exists in the backend, but it may be outdated and is not clearly connected to the deployed app as a whole. Users cannot easily see the version of the website they are interacting with.
+The backend version is defined at `backend/pyproject.toml:4`:
 
-### Affected Components
+```toml
+version = "0.5.0"
+```
 
-The affected components will likely include:
+The frontend has a separate version at `frontend/package.json:4`:
 
-* Backend version configuration, possibly `pyproject.toml`
-* A backend API endpoint for getting the version
-* Frontend code that fetches and displays the version
-* Possibly tests for the new endpoint or frontend display
+```json
+"version": "0.2.0"
+```
+
+The frontend injects that frontend package version in `frontend/vite.config.ts:6` and `frontend/vite.config.ts:13`:
+
+```ts
+import { version } from "./package.json";
+__APP_VERSION__: JSON.stringify(version)
+```
+
+The footer displays that value in `frontend/src/App.tsx:46`:
+
+```tsx
+UI Version {__APP_VERSION__}
+```
+
+The backend currently registers `/api/query` at `backend/tenantfirstaid/app.py:55` and `/api/feedback` at `backend/tenantfirstaid/app.py:63`, but I did not find an existing `/api/version` route.
 
 ---
 
-## Reproduction Process
+## Phase II: Reproduction and Solution Plan
 
 ### Environment Setup
 
-I will start by forking the repository, cloning it locally, and following the project setup instructions. I will make sure the backend and frontend can both run locally before making changes.
+I forked the repository and cloned my fork locally:
+
+```sh
+git clone https://github.com/divinekpor/tenantfirstaid.git
+cd tenantfirstaid
+```
+
+The project does not appear to use a dev container. I used the setup instructions in the root `README.md`.
+
+Backend setup path from the README:
+
+```sh
+cd backend
+uv sync
+uv run python -m tenantfirstaid.app
+```
+
+Frontend setup path from the README:
+
+```sh
+cd frontend
+npm install
+npm run generate-types
+npm run dev
+```
+
+Local frontend URL:
+
+```text
+http://localhost:5173
+```
+
+Important setup notes:
+
+* Backend requires Python `>=3.12,<3.14`.
+* Backend dependencies use `uv`.
+* Frontend dependencies use `npm`.
+* Running the full backend locally may require Google Cloud application default credentials and a LangSmith API key.
+* The repository has `backend/.env.example` and root `.env.example` files for environment setup.
+
+Working branch:
+
+```text
+https://github.com/divinekpor/tenantfirstaid/tree/fix-issue-175
+```
 
 ### Steps to Reproduce
 
-1. Clone and run the project locally.
-2. Look for any existing version information in the backend, especially in `pyproject.toml`.
-3. Check the frontend webpage to see whether the version is currently displayed.
-4. Confirm that there is no endpoint currently exposing the app version.
+1. Open the cloned `tenantfirstaid` repository.
+2. Inspect `backend/pyproject.toml:4`.
+3. **Expected:** This backend version should be the app-level version source.
+4. **Actual:** The backend version is `0.5.0`, but it is not exposed by a backend route.
+5. Inspect `backend/tenantfirstaid/app.py:55` and `backend/tenantfirstaid/app.py:63`.
+6. **Expected:** There should be an endpoint such as `GET /api/version`.
+7. **Actual:** The file only registers `/api/query` and `/api/feedback`; no version endpoint exists.
+8. Inspect `frontend/package.json:4`.
+9. **Expected:** The frontend should not be the separate source of truth for the deployed app version.
+10. **Actual:** The frontend has its own version, `0.2.0`.
+11. Inspect `frontend/vite.config.ts:6` and `frontend/vite.config.ts:13`.
+12. **Expected:** The frontend should get the displayed app version from the backend.
+13. **Actual:** `__APP_VERSION__` is defined from the frontend package version.
+14. Inspect `frontend/src/App.tsx:46`.
+15. **Expected:** The footer should display the shared app version from the backend.
+16. **Actual:** The footer displays `UI Version {__APP_VERSION__}`, which comes from the frontend package version.
 
 ### Reproduction Evidence
 
-* **Commit showing reproduction:** [Link to commit in your fork]
-* **Screenshots/logs:** I will add screenshots or terminal output showing the app running without a visible version.
-* **My findings:** The app needs a clear version endpoint and a visible version display on the webpage.
+* `backend/pyproject.toml:4` has backend version `0.5.0`.
+* `frontend/package.json:4` has frontend version `0.2.0`.
+* `frontend/vite.config.ts:13` defines `__APP_VERSION__` from the frontend package version.
+* `frontend/src/App.tsx:46` displays `UI Version {__APP_VERSION__}`.
+* `backend/tenantfirstaid/app.py:55` and `backend/tenantfirstaid/app.py:63` show the current API route pattern, but there is no `/api/version` route.
 
----
+### Root Cause
 
-## Solution Approach
+The root cause is that the frontend is using its own package version as the displayed UI version, while the backend version is stored separately and is not available through the API. This creates two version values and prevents the backend version from acting as the single source of truth.
 
-### Analysis
+### UMPIRE Solution Plan
 
-The root issue is that the app does not currently have a clear, visible version system for users. Even though the backend has a version in `pyproject.toml`, it is not being used as a single source of truth across the deployed app.
+**Understand:**  
+Tenant First Aid needs one semantic version number for the deployed application. Right now, the backend version is `0.5.0` in `backend/pyproject.toml:4`, but the frontend footer displays `0.2.0` from `frontend/package.json:4`.
 
-### Proposed Solution
-
-I plan to use the backend version as the single source of truth, expose it through a backend endpoint, and then update the frontend to fetch and display that version on the webpage.
-
-### Implementation Plan
-
-Using UMPIRE framework:
-
-**Understand:**
-The project needs one version number that represents the entire deployed app and can be shown to users.
-
-**Match:**
-I will look through the backend routes to find how existing API endpoints are created. I will also look through the frontend to find a good location to display small site information, such as a footer or about section.
+**Match:**  
+Backend routes are registered in `backend/tenantfirstaid/app.py` with `app.add_url_rule`, such as `/api/query` at line 55 and `/api/feedback` at line 63. Backend route tests are grouped in `backend/tests/test_app.py`, including route behavior tests like `test_unknown_route_returns_404` at line 74. The frontend already has a shared footer in `frontend/src/App.tsx:42-48`, so that is the right place to display the app version.
 
 **Plan:**
 
-1. Find where the backend version is stored in `pyproject.toml`.
-2. Add a backend endpoint that returns the current version.
-3. Add or update frontend code to call the version endpoint.
-4. Display the version somewhere simple on the webpage.
-5. Add or update tests if the project has testing patterns for endpoints or frontend components.
+1. In `backend/tenantfirstaid/app.py`, add a small version route function near the existing route definitions.
+2. Read the backend package version from Python package metadata for `tenant-first-aid`, so the endpoint stays tied to `backend/pyproject.toml`.
+3. Register a `GET /api/version` route with `app.add_url_rule`.
+4. Return JSON in this shape:
 
-**Implement:**
-[Link to your branch/commits as you work]
+```json
+{ "version": "0.5.0" }
+```
 
-**Review:**
-I will check that the code follows the project’s style, does not hard-code the version in multiple places, and keeps the backend version as the single source of truth.
+5. In `backend/tests/test_app.py`, add a test for `GET /api/version`.
+6. Test that the endpoint returns `200`, JSON content, and a `version` value matching the backend package version.
+7. In `frontend/src/App.tsx`, replace the current `UI Version {__APP_VERSION__}` footer display with state that fetches `/api/version`.
+8. Keep a fallback display so the footer does not break if the version request fails.
+9. Remove unused frontend-only version plumbing from `frontend/vite.config.ts`, `frontend/vitest.config.ts`, and `frontend/src/vite-env.d.ts` if nothing else uses `__APP_VERSION__`.
+10. Add or update a frontend test if the existing test setup has coverage for `App.tsx` or footer behavior.
 
-**Evaluate:**
-I will run the project locally and confirm that the version endpoint works and that the version appears correctly on the webpage.
+**Implement:**  
+Implementation will happen later on branch `fix-issue-175`:  
+https://github.com/divinekpor/tenantfirstaid/tree/fix-issue-175
+
+**Review:**  
+Before opening a PR later, I will review the code against the project README and `.github/pull_request_template.md`. The PR template asks contributors to identify the PR type, link the related issue, describe the changes, confirm tests, and note whether architecture documentation needs updates.
+
+**Evaluate:**  
+Manual verification should show that `GET /api/version` returns the backend version and that the footer displays the same version. Automated verification should include backend route tests and the relevant frontend checks.
+
+### Testing Plan
+
+Backend checks to run later:
+
+```sh
+cd backend
+uv run pytest
+uv run ruff check
+uv run ty check
+```
+
+Frontend checks to run later:
+
+```sh
+cd frontend
+npm run generate-types
+npm run lint
+npm run typecheck
+npm run test -- --run
+```
+
+Manual verification to run later:
+
+1. Start the backend.
+2. Request `http://localhost:5001/api/version`.
+3. Confirm the response is `{ "version": "0.5.0" }`.
+4. Start the frontend.
+5. Open `http://localhost:5173`.
+6. Confirm the footer displays the backend app version, not the frontend package version.
 
 ---
 
-## Testing Strategy
-
-### Unit Tests
-
-* [ ] Test that the version endpoint returns a successful response.
-* [ ] Test that the endpoint returns the expected version format.
-* [ ] Test that the frontend can display the version without breaking the page.
-
-### Integration Tests
-
-* [ ] Start the backend and confirm the frontend can fetch the version.
-* [ ] Confirm the displayed version matches the backend version source.
-
-### Manual Testing
-
-I will manually run the app locally, open the webpage, and check that the version is visible. I will also use the browser or a tool like `curl` to confirm that the version endpoint returns the correct response.
-
----
-
-## Implementation Notes
-
-### Week 1 Progress
-
-I selected the issue, reviewed the issue description, and started identifying the backend and frontend areas that may need to be changed.
-
-### Week 2 Progress
-
-[Continue documenting as you work]
+## Phase III: Implementation
 
 ### Code Changes
 
-* **Files modified:** [List files after implementation]
-* **Key commits:** [Add commit links]
-* **Approach decisions:** I plan to avoid hard-coding the version in multiple places so the project has one clear source of truth.
+[To be completed in Phase III]
+
+### Commits
+
+[To be completed in Phase III]
+
+### Pull Request
+
+[To be completed in Phase III]
 
 ---
 
-## Pull Request
+## Phase IV: Review and Reflection
 
-**PR Link:** [GitHub PR URL when submitted]
+### Maintainer Feedback
 
-**PR Description:**
-This PR adds support for exposing the application version through a backend endpoint and displaying the version on the frontend. The goal is to reduce ambiguity about which version of the website a user is interacting with.
+[To be completed in Phase IV]
 
-**Maintainer Feedback:**
+### Changes Made After Feedback
 
-* [Date]: [Summary of feedback received]
-* [Date]: [How you addressed it]
+[To be completed in Phase IV]
 
-**Status:** Awaiting implementation
+### Learnings and Reflection
 
----
-
-## Learnings & Reflections
-
-### Technical Skills Gained
-
-I expect to gain practice reading an unfamiliar open-source codebase, working with backend routes, connecting frontend code to an API endpoint, and following project contribution standards.
-
-### Challenges Overcome
-
-One challenge may be figuring out the best way to read the version from `pyproject.toml` and finding the best place in the frontend to display it.
-
-### What I'd Do Differently Next Time
-
-After completing this issue, I would try to inspect the project structure faster and identify existing patterns before writing new code.
-
----
-
-## Resources Used
-
-* GitHub issue: https://github.com/codeforpdx/tenantfirstaid/issues/175
-* Project README: [Add link]
-* Backend documentation or framework docs: [Add link]
-* Frontend documentation or framework docs: [Add link]
+[To be completed in Phase IV]
